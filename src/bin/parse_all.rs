@@ -1,4 +1,4 @@
-use rs_bp::BluePrint;
+use android_bp::BluePrint;
 use core::panic;
 use std::fs::File;
 use std::io::Read;

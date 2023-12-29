@@ -2,7 +2,14 @@
 name = "android_bp"
 version = "0.1.0"
 edition = "2021"
-
+description = "Android.bp parser"
+readme = "Readme.md"
+repository = "https://github.com/tardyp/rs-bp"
+homepage = "https://github.com/tardyp/rs-bp"
+license = "MIT"
+keywords = ["android", "bp", "parser", "blueprint"]
+categories = ["android", "parser"]
+authors = ["tardyp"]
 
 [lib]
 name = "android_bp"

@@ -8,7 +8,7 @@ repository = "https://github.com/tardyp/rs-bp"
 homepage = "https://github.com/tardyp/rs-bp"
 license = "MIT"
 keywords = ["android", "bp", "parser", "blueprint", "soong"]
-categories = ["android", "parser"]
+categories = ["parser-implementations"]
 authors = ["tardyp"]
 
 [lib]

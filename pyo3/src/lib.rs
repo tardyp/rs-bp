@@ -1,6 +1,6 @@
 use ::android_bp::Module as RsModule;
 use ::android_bp::BluePrint as RsBluePrint;
-use ::android_bp::Dict as RsDict;
+use ::android_bp::Map as RsMap;
 use ::android_bp::Value as RsValue;
 use std::collections::HashMap;
 
@@ -33,7 +33,7 @@ impl Module {
     }
 }
 
-fn dict_to_py(dict: &RsDict) -> HashMap<String, Value> {
+fn map_to_py(dict: &RsMap) -> HashMap<String, Value> {
     dict.iter().map(value_to_pyvalue).collect()
 }
 #[derive(Debug, Clone, FromPyObject)]
@@ -41,7 +41,7 @@ pub enum Value {
     String(String),
     Array(Vec<String>),
     Boolean(bool),
-    Dict(HashMap<String, Value>),
+    Map(HashMap<String, Value>),
     Ident(String),
 }
 impl IntoPy<Py<PyAny>> for Value {
@@ -50,7 +50,7 @@ impl IntoPy<Py<PyAny>> for Value {
             Value::String(s) => s.into_py(py),
             Value::Array(a) => a.into_py(py),
             Value::Boolean(b) => b.into_py(py),
-            Value::Dict(d) => d.into_py(py),
+            Value::Map(d) => d.into_py(py),
             Value::Ident(i) => i.into_py(py),
         }
     }
@@ -108,7 +108,7 @@ fn value_to_pyvalue(t: (&String, &RsValue)) -> (String, Value) {
         RsValue::String(s) => Value::String(s.to_owned()),
         RsValue::Array(a) => Value::Array(a.to_owned()),
         RsValue::Boolean(b) => Value::Boolean(b.to_owned()),
-        RsValue::Dict(d) => Value::Dict(dict_to_py(&d)),
+        RsValue::Map(d) => Value::Map(map_to_py(&d)),
         RsValue::Ident(i) => Value::Ident(i.to_owned()),
     };
     (k.to_owned(), value)

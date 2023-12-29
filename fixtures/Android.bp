@@ -1,0 +1,18 @@
+cc_library_shared {
+     name: "libxmlrpc++",
+
+     rtti: true,
+     cppflags: [
+           "-Wall",
+           "-Werror",
+           "-fexceptions",
+     ],
+     export_include_dirs: ["src"],
+     srcs: ["src/**/*.cpp"],
+
+     target: {
+           darwin: {
+                enabled: false,
+           },
+     },
+}

@@ -11,7 +11,7 @@ dependencies = [
 
 [[package]]
 name = "android_bp_pyo3"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "android_bp",
  "pyo3",

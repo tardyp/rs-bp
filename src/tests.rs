@@ -119,7 +119,7 @@ mod tests {
             }
         "#;
 
-        let expected_output = Block {
+        let expected_output = Module {
             typ: "block_name".to_string(),
             entries: vec![
                 ("key1".to_string(), Value::String("value1".to_string())),
@@ -149,10 +149,10 @@ mod tests {
                 key3: [ "value2", "value3" ],
             }"#;
         let output = BluePrint::parse(input).unwrap();
-        assert_eq!(output.blocks.len(), 2);
-        assert_eq!(output.blocks[0].typ, "block_name");
-        assert_eq!(output.blocks[1].typ, "block_name2");
-        let mut keys = output.blocks[0]
+        assert_eq!(output.modules.len(), 2);
+        assert_eq!(output.modules[0].typ, "block_name");
+        assert_eq!(output.modules[1].typ, "block_name2");
+        let mut keys = output.modules[0]
             .entries
             .keys()
             .map(|x| x.to_owned())
@@ -173,7 +173,7 @@ mod tests {
                 unit_test: true,
             },
         }        "#;
-        let output: Result<(&str, Block), Err<VerboseError<&str>>> = parse_block(input);
+        let output: Result<(&str, Module), Err<VerboseError<&str>>> = parse_block(input);
         assert!(output.is_ok());
     }
     
@@ -193,7 +193,7 @@ mod tests {
         assert!(output.is_ok());
     }
 
-    fn display_error(input: &str, output: &Result<(&str, Block), Err<VerboseError<&str>>>) -> () {
+    fn display_error(input: &str, output: &Result<(&str, Module), Err<VerboseError<&str>>>) -> () {
         if let Err(e) = output {
             println!("Error: {}", format_err(input, e.clone()));
         }

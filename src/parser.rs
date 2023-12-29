@@ -65,17 +65,17 @@ fn parse_value(input: &str) -> VerboseResult<Value> {
 /// a blueprint file
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct BluePrint {
-    /// defines in the blueprint file 
+    /// variables in the blueprint file 
     /// found in root of the file in the form of `key = value`
-    pub defines: HashMap<String, Value>,
-    /// all ordered blocks in the blueprint file
-    pub blocks: Vec<Block>,
+    pub variables: HashMap<String, Value>,
+    /// all ordered modules in the blueprint file
+    pub modules: Vec<Module>,
 }
 
 
 /// a block in a blueprint file
 #[derive(Debug, PartialEq, Clone, Eq)]
-pub struct Block {
+pub struct Module {
     pub typ: String,
     pub entries: HashMap<String, Value>,
 }
@@ -98,7 +98,7 @@ pub(crate) fn parse_block_entry(input: &str) -> VerboseResult<(String, Value)> {
     )(input)
 }
 
-pub(crate) fn parse_block(input: &str) -> VerboseResult<Block> {
+pub(crate) fn parse_block(input: &str) -> VerboseResult<Module> {
     // parse a identifier followed by a block of entries
     let (input, _) = space_or_comments(input)?;
     let (input, ident) = identifier(input)?;
@@ -116,7 +116,7 @@ pub(crate) fn parse_block(input: &str) -> VerboseResult<Block> {
     )(input)?;
     Ok((
         input,
-        Block {
+        Module {
             typ: ident.to_string(),
             entries: block,
         },
@@ -142,7 +142,7 @@ pub(crate) fn parse_define(input: &str) -> VerboseResult<(String, Value)> {
 }
 pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
     let mut entries = Vec::new();
-    let mut defines = HashMap::new();
+    let mut variables = HashMap::new();
     let (input, _) = context(
         "blueprint",
         many0(alt((
@@ -151,7 +151,7 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
                 ()
             }),
             map(parse_define, |(k, v)| {
-                defines.insert(k, v);
+                variables.insert(k, v);
                 ()
             }),
         ))),
@@ -159,8 +159,8 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
     Ok((
         input,
         BluePrint {
-            defines: defines,
-            blocks: entries,
+            variables: variables,
+            modules: entries,
         },
     ))
 }
@@ -182,5 +182,9 @@ impl BluePrint {
             }
             Err(err) => Err(format_err(input, err)),
         }
+    }
+    pub fn from_file(path: &str) -> Result<Self, String> {
+        let input = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+        Self::parse(&input)
     }
 }

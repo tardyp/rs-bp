@@ -1,100 +1,120 @@
-use ::android_bp::Block;
-use ::android_bp::BluePrint;
-use ::android_bp::Dict;
-use ::android_bp::Value;
+use ::android_bp::Module as RsModule;
+use ::android_bp::BluePrint as RsBluePrint;
+use ::android_bp::Dict as RsDict;
+use ::android_bp::Value as RsValue;
 use std::collections::HashMap;
 
 use pyo3::prelude::*;
 
 #[derive(Debug, Clone)]
 #[pyclass(unsendable)]
-pub struct PyBlock {
-    #[pyo3(get)]
+pub struct Module {
+    #[pyo3(get, name="__type__")]
     pub typ: String,
-    #[pyo3(get)]
-    pub entries: HashMap<String, PyValue>,
+    #[pyo3(get, name="__dict__")]
+    pub entries: HashMap<String, Value>,
 }
-impl From<&Block> for PyBlock {
-    fn from(block: &Block) -> Self {
-                let entries = block.entries.iter().map(value_to_pyvalue).collect();
-        PyBlock {
-            typ: block.typ.to_owned(),
+impl From<&RsModule> for Module {
+    fn from(module: &RsModule) -> Self {
+        let entries = module.entries.iter().map(value_to_pyvalue).collect();
+        Module {
+            typ: module.typ.to_owned(),
             entries,
         }
     }
 }
 #[pymethods]
-impl PyBlock {
+impl Module {
     pub fn __repr__(&self) -> String {
         format!("{:#?}", self)
     }
+    fn __getattr__(&self, attr: &str) -> Option<Value> {
+        self.entries.get(attr).cloned()
+    }
 }
 
-fn dict_to_py(dict: &Dict) -> HashMap<String, PyValue> {
+fn dict_to_py(dict: &RsDict) -> HashMap<String, Value> {
     dict.iter().map(value_to_pyvalue).collect()
 }
 #[derive(Debug, Clone, FromPyObject)]
-pub enum PyValue {
+pub enum Value {
     String(String),
     Array(Vec<String>),
     Boolean(bool),
-    Dict(HashMap<String, PyValue>),
+    Dict(HashMap<String, Value>),
     Ident(String),
 }
-impl IntoPy<Py<PyAny>> for PyValue {
+impl IntoPy<Py<PyAny>> for Value {
     fn into_py(self, py: Python) -> Py<PyAny> {
         match self {
-            PyValue::String(s) => s.into_py(py),
-            PyValue::Array(a) => a.into_py(py),
-            PyValue::Boolean(b) => b.into_py(py),
-            PyValue::Dict(d) => d.into_py(py),
-            PyValue::Ident(i) => i.into_py(py),
+            Value::String(s) => s.into_py(py),
+            Value::Array(a) => a.into_py(py),
+            Value::Boolean(b) => b.into_py(py),
+            Value::Dict(d) => d.into_py(py),
+            Value::Ident(i) => i.into_py(py),
         }
     }
 }
 #[derive(Debug, Clone)]
 #[pyclass(unsendable)]
-pub struct PyBluePrint {
+pub struct BluePrint {
     #[pyo3(get)]
-    pub defines: HashMap<String, PyValue>,
+    pub variables: HashMap<String, Value>,
     #[pyo3(get)]
-    pub blocks: Vec<PyBlock>,
+    pub modules: Vec<Module>,
 }
-impl From<&BluePrint> for PyBluePrint {
-    fn from(bp: &BluePrint) -> Self {
-        let defines = bp.defines.iter().map(value_to_pyvalue).collect();
-        let blocks = bp.blocks.iter().map(|b| PyBlock::from(b)).collect();
-        PyBluePrint { defines, blocks }
+impl From<&RsBluePrint> for BluePrint {
+    fn from(bp: &RsBluePrint) -> Self {
+        let variables = bp.variables.iter().map(value_to_pyvalue).collect();
+        let modules = bp.modules.iter().map(|b| Module::from(b)).collect();
+        BluePrint { variables, modules }
     }
 }
 #[pymethods]
-impl PyBluePrint {
-    #[new]
-    pub fn parse(input: String) -> PyResult<Self> {
-        let bp = BluePrint::parse(&input).map_err(|e| e.to_string());
+impl BluePrint {
+    #[pyo3(name = "parse", signature = (input))]
+    #[staticmethod]
+    fn parse(input: &str) -> PyResult<Self> {
+        let bp = RsBluePrint::parse(input).map_err(|e| e.to_string());
         match bp {
-            Ok(bp) => Ok(PyBluePrint::from(&bp)),
+            Ok(bp) => Ok(BluePrint::from(&bp)),
             Err(e) => Err(PyErr::new::<pyo3::exceptions::PySyntaxError, _>(e)),
         }
     }
-    pub fn  __repr__(&self) -> String {
+    #[staticmethod]
+    #[pyo3(name = "from_file", signature = (path))]
+    pub fn from_file(path: &str) -> PyResult<Self> {
+        let contents = std::fs::read_to_string(&path).map_err(|e| e.to_string());
+        let contents = match contents {
+            Ok(c) => c,
+            Err(e) => return Err(PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(e)),
+        };
+        BluePrint::parse(&contents)
+    }
+    pub fn __repr__(&self) -> String {
         format!("{:#?}", self)
     }
+    fn modules_by_type(&self, typ: &str) -> Vec<Module> {
+        self.modules
+            .iter()
+            .filter(|b| b.typ == typ)
+            .cloned()
+            .collect()
+    }
 }
-fn value_to_pyvalue(t: (&String, &Value)) -> (String, PyValue) {
+fn value_to_pyvalue(t: (&String, &RsValue)) -> (String, Value) {
     let (k, v) = t;
     let value = match v {
-        Value::String(s) => PyValue::String(s.to_owned()),
-        Value::Array(a) => PyValue::Array(a.to_owned()),
-        Value::Boolean(b) => PyValue::Boolean(b.to_owned()),
-        Value::Dict(d) => PyValue::Dict(dict_to_py(&d)),
-        Value::Ident(i) => PyValue::Ident(i.to_owned()),
+        RsValue::String(s) => Value::String(s.to_owned()),
+        RsValue::Array(a) => Value::Array(a.to_owned()),
+        RsValue::Boolean(b) => Value::Boolean(b.to_owned()),
+        RsValue::Dict(d) => Value::Dict(dict_to_py(&d)),
+        RsValue::Ident(i) => Value::Ident(i.to_owned()),
     };
     (k.to_owned(), value)
 }
 #[pymodule]
 fn android_bp(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<PyBluePrint>()?;
+    m.add_class::<BluePrint>()?;
     Ok(())
 }
-

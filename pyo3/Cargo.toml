@@ -2,6 +2,14 @@
 name = "android_bp_pyo3"
 version = "0.2.0"
 edition = "2021"
+description = "Android.bp parser"
+readme = "Readme.md"
+repository = "https://github.com/tardyp/rs-bp"
+homepage = "https://github.com/tardyp/rs-bp"
+license = "MIT"
+keywords = ["android", "bp", "parser", "blueprint", "soong"]
+categories = ["android", "parser"]
+authors = ["tardyp"]
 
 [lib]
 # note that this does not clash with the upstream rust lib

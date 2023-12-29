@@ -11,6 +11,10 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+readme = "Readme.md"
+license = "MIT"
+keywords = ["android", "bp", "parser", "blueprint", "soong"]
+
 dynamic = ["version"]
 
 [tool.maturin]

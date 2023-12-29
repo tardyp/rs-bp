@@ -1,13 +1,13 @@
 [package]
 name = "android_bp"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Android.bp parser"
 readme = "Readme.md"
 repository = "https://github.com/tardyp/rs-bp"
 homepage = "https://github.com/tardyp/rs-bp"
 license = "MIT"
-keywords = ["android", "bp", "parser", "blueprint"]
+keywords = ["android", "bp", "parser", "blueprint", "soong"]
 categories = ["android", "parser"]
 authors = ["tardyp"]
 

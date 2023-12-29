@@ -1,5 +1,5 @@
 use android_bp::BluePrint;
-use core::{panic, num};
+use core::panic;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;

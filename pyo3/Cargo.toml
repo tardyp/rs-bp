@@ -1,0 +1,15 @@
+[package]
+name = "android_bp_pyo3"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# note that this does not clash with the upstream rust lib
+# this make the output file name libandroid_bp.so, so that we can just import it in python with:
+# import android_bp
+name = "android_bp"
+crate-type = ["cdylib"]
+
+[dependencies]
+android_bp = { version = "0.1.0", path = ".." }
+pyo3 = { version = "0.20.0", features = ["extension-module"] }

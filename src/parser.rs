@@ -10,11 +10,22 @@ use nom::{
     sequence::{delimited, tuple},
 };
 use std::collections::HashMap;
+use std::ops::{DerefMut, Deref};
 
 /// a dictionary in a blueprint file
 #[derive(Debug, PartialEq, Clone, Eq)]
-pub struct Dict(HashMap<String, Value>);
-
+pub struct Dict(pub HashMap<String, Value>);
+impl Deref for Dict {
+    type Target = HashMap<String, Value>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for Dict {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 fn parse_dict(input: &str) -> VerboseResult<Dict> {
     context(
         "dict",

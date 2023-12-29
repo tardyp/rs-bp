@@ -1,5 +1,5 @@
 use android_bp::BluePrint;
-use core::panic;
+use core::{panic, num};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -7,13 +7,16 @@ use std::path::Path;
 fn main() {
     let arg1 = std::env::args().nth(1).unwrap();
     let dir_root = Path::new(&arg1);
-    walk_dir(dir_root);
+    let t1 = std::time::Instant::now();
+    let num_parsed = walk_dir(dir_root);
+    println!("{} files parsed in {:.3}s", num_parsed, t1.elapsed().as_secs_f32());
 }
-fn walk_dir(dir: &Path) {
+fn walk_dir(dir: &Path) -> usize {
+    let mut num_files = 0;
     for entry in dir.read_dir().unwrap() {
         let path = entry.unwrap().path();
         if path.is_dir() {
-            walk_dir(&path);
+            num_files += walk_dir(&path);
         } else {
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name == "Android.bp" {
@@ -25,6 +28,7 @@ fn walk_dir(dir: &Path) {
                 let result = BluePrint::parse(&contents);
                 match result {
                     Ok(_) => {
+                        num_files += 1;
                         // println!("{}: {:#?}", path.to_string_lossy(), blueprint);
                     }
                     Err(e) => {
@@ -35,4 +39,5 @@ fn walk_dir(dir: &Path) {
             }
         }
     }
+    num_files
 }

@@ -19,5 +19,5 @@ name = "android_bp"
 crate-type = ["cdylib"]
 
 [dependencies]
-android_bp = { version = "0.1.0", path = ".." }
+android_bp = { path = ".." }
 pyo3 = { version = "0.20.0", features = ["extension-module"] }

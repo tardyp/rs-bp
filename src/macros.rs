@@ -1,5 +1,7 @@
 // define macro tag with additional context
-#[macro_export]
+
+#[macro_export(local_inner_macros)]
+#[doc(hidden)]
 macro_rules! context_tag {
     ($tag:expr) => {
         context(
@@ -9,7 +11,8 @@ macro_rules! context_tag {
     };
 }
 // define macro ending delimiter with optional comma
-#[macro_export]
+#[macro_export(local_inner_macros)]
+#[doc(hidden)]
 macro_rules! end_delimiter {
     ($tag:expr) => {
         tuple((

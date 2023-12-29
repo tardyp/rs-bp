@@ -1,7 +1,5 @@
 use android_bp::BluePrint;
 use core::panic;
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 
 fn main() {
@@ -20,20 +18,19 @@ fn walk_dir(dir: &Path) -> usize {
         } else {
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name == "Android.bp" {
-                // read the file
-                let mut file = File::open(&path).unwrap();
-                let mut contents = String::new();
-                file.read_to_string(&mut contents).unwrap();
-                // parse the file
-                let result = BluePrint::parse(&contents);
+                let result = BluePrint::from_file(&path);
                 match result {
-                    Ok(_) => {
+                    Ok(blueprint) => {
                         num_files += 1;
-                        // println!("{}: {:#?}", path.to_string_lossy(), blueprint);
+                        println!("{}", path.to_string_lossy());
+                        for module in blueprint.modules {
+                            println!("{} {:?}", module.typ, module.get("name"));
+
+                        }
                     }
                     Err(e) => {
                         println!("{}: {}", path.to_string_lossy(), e);
-                        panic!();
+                        panic!("please report! this file is not parsed correctly");
                     }
                 }
             }

@@ -37,6 +37,4 @@ This module is only intended to parse Android.bp files, not to generate or rewri
 
         # map properties are accessible as python dicts
         print(m.test_options['unit_test'])
-
-    print()
 ```

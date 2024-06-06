@@ -4,7 +4,7 @@ use nom::{
     character::complete::{alpha1, alphanumeric1, char, multispace1},
     combinator::{cut, map, opt, recognize, value},
     error::{context, VerboseError},
-    multi::{many0, many0_count, separated_list0},
+    multi::{many0, many0_count, many1, separated_list0},
     sequence::{delimited, pair, tuple},
     IResult, Parser,
 };
@@ -33,6 +33,12 @@ pub(crate) fn space_or_comments(input: &str) -> VerboseResult<()> {
     value(
         (),
         many0(alt((value((), multispace1), comment, multiline_comment))),
+    )(input)
+}
+pub(crate) fn space_or_comments1(input: &str) -> VerboseResult<()> {
+    value(
+        (),
+        many1(alt((value((), multispace1), comment, multiline_comment))),
     )(input)
 }
 

@@ -196,6 +196,7 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
                 variables.insert(k, v);
                 ()
             }),
+            space_or_comments1,
         ))),
     )(input)?;
     Ok((

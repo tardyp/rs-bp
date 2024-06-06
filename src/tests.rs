@@ -1,6 +1,8 @@
 
 #[cfg(test)]
 mod tests {
+    use std::thread::panicking;
+
     use crate::utils::*;
     use crate::parser::*;
     use nom::Err;
@@ -192,8 +194,26 @@ mod tests {
         display_error(input, &output);
         assert!(output.is_ok());
     }
+    #[test]
+    fn test_all_comment() {
+        let input = r#"/*
+        rust_test_host {
+        //     name: "ss",
+        //
+        srcs: ["src/ss.rs"],
+        test_options: {
+            unit_test: true,
+        },
+        }        
+        */"#;
+        let output = BluePrint::parse(input);
+        if output.is_err() {
+            println!("Error: {}", output.unwrap_err());
+            panic!("Error in parsing");
+        }
+    }
 
-    fn display_error(input: &str, output: &Result<(&str, Module), Err<VerboseError<&str>>>) -> () {
+    fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) -> () {
         if let Err(e) = output {
             println!("Error: {}", format_err(input, e.clone()));
         }

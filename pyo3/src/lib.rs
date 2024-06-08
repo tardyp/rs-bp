@@ -39,7 +39,7 @@ fn map_to_py(dict: &RsMap) -> HashMap<String, Value> {
 #[derive(Debug, Clone, FromPyObject)]
 pub enum Value {
     String(String),
-    Array(Vec<String>),
+    Array(Vec<Value>),
     Boolean(bool),
     Map(HashMap<String, Value>),
     Ident(String),
@@ -102,16 +102,20 @@ impl BluePrint {
             .collect()
     }
 }
+impl From<&RsValue> for Value {
+    fn from(v: &RsValue) -> Self {
+        match v {
+            RsValue::String(s) => Value::String(s.to_owned()),
+            RsValue::Array(a) => Value::Array(a.iter().map(|x| Value::from(x)).collect()),
+            RsValue::Boolean(b) => Value::Boolean(b.to_owned()),
+            RsValue::Map(d) => Value::Map(map_to_py(&d)),
+            RsValue::Ident(i) => Value::Ident(i.to_owned()),
+        }
+    }
+}
 fn value_to_pyvalue(t: (&String, &RsValue)) -> (String, Value) {
     let (k, v) = t;
-    let value = match v {
-        RsValue::String(s) => Value::String(s.to_owned()),
-        RsValue::Array(a) => Value::Array(a.to_owned()),
-        RsValue::Boolean(b) => Value::Boolean(b.to_owned()),
-        RsValue::Map(d) => Value::Map(map_to_py(&d)),
-        RsValue::Ident(i) => Value::Ident(i.to_owned()),
-    };
-    (k.to_owned(), value)
+    (k.to_owned(), v.into())
 }
 #[pymodule]
 fn android_bp(_py: Python, m: &PyModule) -> PyResult<()> {

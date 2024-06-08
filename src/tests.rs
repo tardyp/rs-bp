@@ -1,25 +1,15 @@
-
 #[cfg(test)]
 mod tests {
-    use std::thread::panicking;
 
-    use crate::utils::*;
     use crate::parser::*;
-    use nom::Err;
     use nom::error::VerboseError;
+    use nom::Err;
 
     #[test]
     fn test_parse_array() {
         // Test case 1: Valid input
         let input = r#"[ "value1", "value2", "value3" ]"#;
-        let expected_output = Ok((
-            "",
-            vec![
-                "value1".to_string(),
-                "value2".to_string(),
-                "value3".to_string(),
-            ],
-        ));
+        let expected_output = Ok(("", vec!["value1".into(), "value2".into(), "value3".into()]));
         assert_eq!(parse_array(input), expected_output);
 
         // Test case 2: Empty array
@@ -29,19 +19,12 @@ mod tests {
 
         // Test case 3: Array with whitespace
         let input = r#"[ "value1" , "value2" , "value3" ]"#;
-        let expected_output = Ok((
-            "",
-            vec![
-                "value1".to_string(),
-                "value2".to_string(),
-                "value3".to_string(),
-            ],
-        ));
+        let expected_output = Ok(("", vec!["value1".into(), "value2".into(), "value3".into()]));
         assert_eq!(parse_array(input), expected_output);
 
         // Test case 4: Array with empty values
         let input = r#"[ "", "", "" ]"#;
-        let expected_output = Ok(("", vec!["".to_string(), "".to_string(), "".to_string()]));
+        let expected_output = Ok(("", vec!["".into(), "".into(), "".into()]));
         assert_eq!(parse_array(input), expected_output);
 
         // Test case 5: Array with mixed types
@@ -58,14 +41,7 @@ mod tests {
 
         // Test case 8: Array with trailing comma is not an error
         let input = r#"[ "value1", "value2", "value3", ]"#;
-        let expected_output = Ok((
-            "",
-            vec![
-                "value1".to_string(),
-                "value2".to_string(),
-                "value3".to_string(),
-            ],
-        ));
+        let expected_output = Ok(("", vec!["value1".into(), "value2".into(), "value3".into()]));
         assert_eq!(parse_array(input), expected_output);
     }
     #[test]
@@ -86,11 +62,7 @@ mod tests {
             "",
             (
                 "key".to_string(),
-                Value::Array(vec![
-                    "value1".to_string(),
-                    "value2".to_string(),
-                    "value3".to_string(),
-                ]),
+                Value::Array(vec!["value1".into(), "value2".into(), "value3".into()]),
             ),
         ));
         assert_eq!(parse_module_entry(input), expected_output);
@@ -128,7 +100,7 @@ mod tests {
                 ("key2".to_string(), Value::Boolean(true)),
                 (
                     "key3".to_string(),
-                    Value::Array(vec!["value2".to_string(), "value3".to_string()]),
+                    Value::Array(vec!["value2".into(), "value3".into()]),
                 ),
             ]
             .into_iter()
@@ -178,7 +150,7 @@ mod tests {
         let output: Result<(&str, Module), Err<VerboseError<&str>>> = parse_module(input);
         assert!(output.is_ok());
     }
-    
+
     #[test]
     fn test_comment() {
         let input = r#"
@@ -213,6 +185,44 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_issue_1() {
+        let input = r#"
+        aidl_interface {
+            name: "android.hardware.tetheroffload",
+            vendor_available: true,
+            srcs: ["android/hardware/tetheroffload/*.aidl"],
+            stability: "vintf",
+            backend: {
+                cpp: {
+                    enabled: false,
+                },
+                java: {
+                    sdk_version: "module_current",
+                    apex_available: [
+                        "com.android.tethering",
+                    ],
+                    min_sdk_version: "30",
+                    enabled: true,
+                },
+                ndk: {
+                    apps_enabled: false,
+                },
+            },
+            versions_with_info: [
+                {
+                    version: "1",
+                    imports: [],
+                },
+            ],
+            frozen: true,
+        
+        }
+        "#;
+        let output = parse_module(input);
+        display_error(input, &output);
+        assert!(output.is_ok());
+    }
     fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) -> () {
         if let Err(e) = output {
             println!("Error: {}", format_err(input, e.clone()));

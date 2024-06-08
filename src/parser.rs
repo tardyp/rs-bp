@@ -45,10 +45,16 @@ fn parse_dict(input: &str) -> VerboseResult<Map> {
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Value {
     String(String),
-    Array(Vec<String>),
+    Array(Vec<Value>),
     Boolean(bool),
     Map(Map),
     Ident(String),
+}
+// convert value from str
+impl From <&str> for Value {
+    fn from(s: &str) -> Self {
+        Value::String(s.to_string())
+    }
 }
 fn parse_value(input: &str) -> VerboseResult<Value> {
     context(
@@ -60,6 +66,17 @@ fn parse_value(input: &str) -> VerboseResult<Value> {
             map(parse_dict, Value::Map),
             map(identifier, |x| Value::Ident(x.to_string())),
         )),
+    )(input)
+}
+
+pub(crate) fn parse_array(input: &str) -> VerboseResult<Vec<Value>> {
+    context(
+        "array",
+        delimited(
+            ws(char('[')),
+            separated_list0(comma, parse_value),
+            end_delimiter!("]"),
+        ),
     )(input)
 }
 
@@ -100,7 +117,7 @@ impl Module {
         }
     }
     /// get an array attribute value from a module
-    pub fn get_array(&self, key: &str) -> Option<&Vec<String>> {
+    pub fn get_array(&self, key: &str) -> Option<&Vec<Value>> {
         match self.get(key) {
             Some(Value::Array(a)) => Some(a),
             _ => None,

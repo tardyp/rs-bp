@@ -2,6 +2,10 @@
 
 A python module to parse Android.bp files (wrapper for android_bp rust module)
 
+## Goals
+
+This module will quickly parse Android.bp files and provide a python interface to access the data.
+
 ## Non-Goals
 
 This module is only intended to parse Android.bp files, not to generate or rewrite them.

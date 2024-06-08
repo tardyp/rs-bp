@@ -2,9 +2,9 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while},
     character::complete::{alpha1, alphanumeric1, char, multispace1},
-    combinator::{cut, map, opt, recognize, value},
+    combinator::{map, recognize, value},
     error::{context, VerboseError},
-    multi::{many0, many0_count, many1, separated_list0},
+    multi::{many0, many0_count, many1},
     sequence::{delimited, pair, tuple},
     IResult, Parser,
 };
@@ -42,7 +42,7 @@ pub(crate) fn space_or_comments1(input: &str) -> VerboseResult<()> {
     )(input)
 }
 
-fn ws<'a, F, O>(inner: F) -> impl Parser<&'a str, O, VerboseError<&'a str>>
+pub(crate)fn ws<'a, F, O>(inner: F) -> impl Parser<&'a str, O, VerboseError<&'a str>>
     where
     F: Parser<&'a str, O, VerboseError<&'a str>>,
 {
@@ -71,17 +71,6 @@ pub(crate) fn string_literal(input: &str) -> VerboseResult<String> {
 
 pub(crate) fn comma(input: &str) -> VerboseResult<&str> {
     ws(tag(",")).parse(input)
-}
-
-pub(crate) fn parse_array(input: &str) -> VerboseResult<Vec<String>> {
-    context(
-        "array",
-        delimited(
-            ws(char('[')),
-            separated_list0(comma, string_literal),
-            end_delimiter!("]"),
-        ),
-    )(input)
 }
 
 pub(crate) fn parse_bool(input: &str) -> VerboseResult<bool> {

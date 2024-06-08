@@ -223,7 +223,17 @@ mod tests {
         display_error(input, &output);
         assert!(output.is_ok());
     }
-    fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) -> () {
+    #[test]
+    fn test_issue_2() {
+        let input = r#"
+        aidl_interface {
+            name: "android.hardw\"are.tetheroffload",
+        }
+        "#;
+        let output = parse_module(input);
+        display_error(input, &output);
+        assert!(output.is_ok());
+    }    fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) -> () {
         if let Err(e) = output {
             println!("Error: {}", format_err(input, e.clone()));
         }

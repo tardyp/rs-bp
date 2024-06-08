@@ -7,6 +7,7 @@ mod parser;
 mod macros;
 mod utils;
 mod tests;
+mod string;
 
 pub use parser::BluePrint;
 pub use parser::Value;

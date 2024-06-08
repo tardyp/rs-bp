@@ -1,13 +1,14 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until, take_while},
-    character::complete::{alpha1, alphanumeric1, char, multispace1},
+    bytes::complete::{tag, take_until},
+    character::complete::{alpha1, alphanumeric1, multispace1},
     combinator::{map, recognize, value},
     error::{context, VerboseError},
     multi::{many0, many0_count, many1},
     sequence::{delimited, pair, tuple},
     IResult, Parser,
 };
+use crate::string::parse_string;
 
 /// Result type with verbose error
 pub(crate) type VerboseResult<'a, T> = IResult<&'a str, T, VerboseError<&'a str>>;
@@ -62,10 +63,7 @@ pub(crate) fn identifier(input: &str) -> VerboseResult<&str> {
 pub(crate) fn string_literal(input: &str) -> VerboseResult<String> {
     context(
         "string",
-        map(
-            delimited(char('"'), take_while(|c| c != '"'), char('"')),
-            |s: &str| s.to_string(),
-        ),
+        parse_string
     )(input)
 }
 

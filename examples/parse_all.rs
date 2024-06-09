@@ -21,14 +21,14 @@ fn walk_dir(dir: &Path) -> usize {
                 match result {
                     Ok(blueprint) => {
                         num_files += 1;
-                        // println!("{}", path.to_string_lossy());
+                        println!("{}", path.to_string_lossy());
                         for module in blueprint.modules {
-                            // println!("{} {:?}", module.typ, module.get("name"));
+                            println!("{} {:?}", module.typ, module.get("name"));
                         }
                     }
                     Err(e) => {
                         println!("{}: {}", path.to_string_lossy(), e);
-                        // panic!("please report! this file is not parsed correctly");
+                        panic!("please report! this file is not parsed correctly");
                     }
                 }
             }

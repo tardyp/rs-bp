@@ -1,6 +1,6 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until},
+    bytes::complete::{tag, take_until, take_while},
     character::complete::{alpha1, alphanumeric1, digit1, multispace1},
     combinator::{map, map_res, opt, recognize, value},
     error::{context, VerboseError},
@@ -18,7 +18,7 @@ pub(crate) fn comment(input: &str) -> VerboseResult<()> {
         "comment",
         value(
             (),
-            tuple((tag("//"), take_until("\n"))),
+            tuple((tag("//"), take_while(|c|c!='\n'))),
         ),
     )(input)
 }

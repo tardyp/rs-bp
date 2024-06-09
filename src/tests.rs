@@ -314,4 +314,12 @@ mod tests {
         assert!(output.as_ref().unwrap().0.is_empty());
 
     }
+    #[test]
+    fn test_linecomment_wo_eol() {
+        let input = r#"// foo"#;
+        let output = BluePrint::parse(input);
+        println!("{:?}", output);
+        assert!(output.is_ok());
+
+    }
 }

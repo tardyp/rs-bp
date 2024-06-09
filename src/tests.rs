@@ -296,4 +296,22 @@ mod tests {
             output.unwrap().1
                 == Value::Integer(123));
     }
+    // found in platform_testing/tests/health/scenarios/tests/Android.bp
+    #[test]
+    fn test_complicated_concat() {
+        let input = r#""out_dir=$$(dirname $(out)) && assets_dir=\"assets\" " +
+        "&& mkdir -p $$out_dir/$$assets_dir && src_protos=($(locations assets/*.textpb)) " +
+        "&& for file in $${src_protos[@]} ; do fname=$$(basename $$file) " +
+        "&& if ! ($(location aprotoc) --encode=longevity.profile.Configuration " +
+        "$(location :profile-proto-def) < $$file > " +
+        "$$out_dir/$$assets_dir/$${fname//.textpb/.pb}) ; then " +
+        "echo \"\x1b[0;31mFailed to parse profile $$file. See above for errors.\x1b[0m\" " +
+        "&& exit 1 ; fi ; done && jar cf $(out) -C $$(dirname $(out)) $$assets_dir""#;
+        let output = parse_expr(input);
+        display_error(input, &output);
+        println!("{:?}", output);
+        assert!(output.is_ok());
+        assert!(output.as_ref().unwrap().0.is_empty());
+
+    }
 }

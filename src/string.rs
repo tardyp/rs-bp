@@ -1,4 +1,4 @@
-//! unmodified from nom example https://github.com/rust-bakery/nom/blob/7.1.3/examples/string.rs
+//! modified from nom example https://github.com/rust-bakery/nom/blob/7.1.3/examples/string.rs
 //! License MIT:
 //! from @0x7FFFFFFFFFFFFFFF and @Geal
 //! This example shows an example of how to parse an escaped string. The
@@ -18,7 +18,7 @@ use nom::character::streaming::{char, multispace1};
 use nom::combinator::{map, map_opt, map_res, value, verify};
 use nom::error::{FromExternalError, ParseError};
 use nom::multi::fold_many0;
-use nom::sequence::{delimited, preceded};
+use nom::sequence::{delimited, preceded, tuple};
 use nom::IResult;
 
 // parser combinators are constructed from the bottom up:
@@ -58,6 +58,42 @@ where
   map_opt(parse_u32, |value| std::char::from_u32(value))(input)
 }
 
+/// Parse a hex sequence, of the form xXX, where XX is 2 hexadecimal numerals.
+/// We will combine this later with parse_escaped_char
+/// to parse sequences like \x1b.
+fn parse_hex<'a, E>(input: &'a str) -> IResult<&'a str, char, E>
+where
+  E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
+{
+  map_res(tuple((
+    char('x'),
+    // `take_while_m_n` parses between `m` and `n` bytes (inclusive) that match
+    // a predicate. `parse_hex` here parses 2 hexadecimal numerals.
+    take_while_m_n(2, 2, |c: char| c.is_ascii_hexdigit()),
+  )), |(_, hex)| {
+    let value = u8::from_str_radix(hex, 16)?;
+    Ok(value as char)
+  })(input)
+}
+
+/// Parse a oct sequence, of the form 0XX, where XX is 2 octal numerals.
+/// We will combine this later with parse_escaped_char
+/// to parse sequences like \033.
+fn parse_oct<'a, E>(input: &'a str) -> IResult<&'a str, char, E>
+where
+  E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
+{
+  map_res(tuple((
+    char('0'),
+    // `take_while_m_n` parses between `m` and `n` bytes (inclusive) that match
+    // a predicate. `parse_hex` here parses 2 hexadecimal numerals.
+    take_while_m_n(2, 2, |c: char| c.is_ascii_hexdigit()),
+  )), |(_, hex)| {
+    let value = u8::from_str_radix(hex, 8)?;
+    Ok(value as char)
+  })(input)
+}
+
 /// Parse an escaped character: \n, \t, \r, \u{00AC}, etc.
 fn parse_escaped_char<'a, E>(input: &'a str) -> IResult<&'a str, char, E>
 where
@@ -69,6 +105,8 @@ where
     // the first successful match
     alt((
       parse_unicode,
+      parse_hex,
+      parse_oct,
       // The `value` parser returns a fixed value (the first argument) if its
       // parser (the second argument) succeeds. In these cases, it looks for
       // the marker characters (n, r, t, etc) and returns the matching
@@ -161,4 +199,44 @@ where
   // `delimited` with a looping parser (like fold_many0), be sure that the
   // loop won't accidentally match your closing delimiter!
   delimited(char('"'), build_string, char('"'))(input)
+}
+
+#[cfg(test)]
+mod tests {
+  use nom::error::VerboseError;
+
+  use crate::parser::format_err;
+
+use super::*;
+
+  #[test]
+  fn test_parse_string() {
+    use super::*;
+    let input = r#""Hello, world!""#;
+    let expected_output = Ok(("", "Hello, world!".to_string()));
+    assert_eq!(parse_string::<VerboseError<&str>>(input), expected_output);
+  }
+  #[test]
+  fn test_parse_escaped() {
+    use super::*;
+    let input = r#""Hello, \"world\"!""#;
+    let expected_output = Ok(("", "Hello, \"world\"!".to_string()));
+    assert_eq!(parse_string::<VerboseError<&str>>(input), expected_output);
+  }
+  #[test]
+  fn test_parse_escaped_x1b() {
+    use super::*;
+    let input = r#""echo \"\x1b""#;
+    let expected_output = Ok(("", "echo \"\x1b".to_string()));
+    let r = parse_string::<VerboseError<&str>>(input);
+    assert_eq!(parse_string::<VerboseError<&str>>(input), expected_output);
+  }
+  #[test]
+  fn test_parse_escaped_033() {
+    use super::*;
+    let input = r#""echo \"\033""#;
+    let expected_output = Ok(("", "echo \"\x1b".to_string()));
+    let r = parse_string::<VerboseError<&str>>(input);
+    assert_eq!(parse_string::<VerboseError<&str>>(input), expected_output);
+  }
 }

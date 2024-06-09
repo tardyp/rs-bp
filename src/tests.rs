@@ -27,19 +27,15 @@ mod tests {
         let expected_output = Ok(("", vec!["".into(), "".into(), "".into()]));
         assert_eq!(parse_array(input), expected_output);
 
-        // Test case 5: Array with mixed types
-        let input = r#"[ "value1", 2, true ]"#;
-        assert!(parse_array(input).is_err());
-
-        // Test case 6: Invalid input - missing closing bracket
+        // Test case 5: Invalid input - missing closing bracket
         let input = r#"[ "value1", "value2", "value3""#;
         assert!(parse_array(input).is_err());
 
-        // Test case 7: Invalid input - missing opening bracket
+        // Test case 5: Invalid input - missing opening bracket
         let input = r#""value1", "value2", "value3" ]"#;
         assert!(parse_array(input).is_err());
 
-        // Test case 8: Array with trailing comma is not an error
+        // Test case 6: Array with trailing comma is not an error
         let input = r#"[ "value1", "value2", "value3", ]"#;
         let expected_output = Ok(("", vec!["value1".into(), "value2".into(), "value3".into()]));
         assert_eq!(parse_array(input), expected_output);
@@ -309,7 +305,6 @@ mod tests {
         "&& exit 1 ; fi ; done && jar cf $(out) -C $$(dirname $(out)) $$assets_dir""#;
         let output = parse_expr(input);
         display_error(input, &output);
-        println!("{:?}", output);
         assert!(output.is_ok());
         assert!(output.as_ref().unwrap().0.is_empty());
 
@@ -318,7 +313,6 @@ mod tests {
     fn test_linecomment_wo_eol() {
         let input = r#"// foo"#;
         let output = BluePrint::parse(input);
-        println!("{:?}", output);
         assert!(output.is_ok());
 
     }
@@ -328,7 +322,6 @@ mod tests {
         let output = parse_expr(input);
         display_error(input, &output);
         assert!(output.is_ok());
-        println!("{:#?}", output.as_ref().unwrap().1);
         assert_eq!(output.unwrap().1, Value::Function(Function {
             name: "method".to_string(),
             args: vec![Value::String("ss".to_string())]

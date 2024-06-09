@@ -1,9 +1,11 @@
 #[cfg(test)]
 mod tests {
 
+    use std::io::Read;
+
     use crate::parser::*;
     use nom::error::VerboseError;
-    use nom::Err;
+    use nom::{bytes, Err};
 
     #[test]
     fn test_parse_array() {
@@ -249,7 +251,6 @@ mod tests {
         let input = r#""abc" + "def""#;
         let output = parse_expr(input);
         display_error(input, &output);
-        println!("{:?}", output);
         assert!(output.is_ok());
         assert!(output.as_ref().unwrap().0.is_empty());
         assert!(output.unwrap().1 == Value::String("abcdef".to_string()));
@@ -259,7 +260,6 @@ mod tests {
         let input = r#"["abc", "def"] + [ "ghi" ]"#;
         let output = parse_expr(input);
         display_error(input, &output);
-        println!("{:?}", output);
         assert!(output.is_ok());
         assert!(output.as_ref().unwrap().0.is_empty());
         assert!(output.unwrap().1 == Value::Array(vec!["abc".into(), "def".into(), "ghi".into()]));
@@ -269,7 +269,6 @@ mod tests {
         let input = r#"ident + [ "ghi" ]"#;
         let output = parse_expr(input);
         display_error(input, &output);
-        println!("{:?}", output);
         assert!(output.is_ok());
         assert!(output.as_ref().unwrap().0.is_empty());
         assert!(
@@ -285,7 +284,6 @@ mod tests {
         let input = r#"123"#;
         let output = parse_expr(input);
         display_error(input, &output);
-        println!("{:?}", output);
         assert!(output.is_ok());
         assert!(output.as_ref().unwrap().0.is_empty());
         assert!(
@@ -327,5 +325,37 @@ mod tests {
             args: vec![Value::String("ss".to_string())]
         }));
 
+    }
+    #[test]
+    fn test_aosp_db() {
+        // generate tarball from aosp tree
+        // fd -g Android.bp |xargs tar cJf ../rs-bp/src/test_db.tar.xz
+        let data = include_bytes!("test_db.tar.xz");
+        let mut archive = tar::Archive::new(liblzma::read::XzDecoder::new(&data[..]));
+        let mut count = 0;
+        let mut bytes = 0;
+        let mut all_bp = Vec::new();
+        // first decompress in memory to avoid disk IO for measuring performance
+        for entry in archive.entries().unwrap() {
+            let entry = entry.unwrap();
+            let mut entry_data = std::io::BufReader::new(entry);
+            let mut contents = String::new();
+            entry_data.read_to_string(&mut contents).unwrap();
+            bytes += contents.len();
+            all_bp.push((format!("{:?}", entry_data.into_inner().path().unwrap()), contents));
+        }
+        let now = std::time::Instant::now();
+        for (path, contents) in all_bp {
+            let output = BluePrint::parse(&contents);
+            if output.is_err() {
+                println!("Error for file: {:?}", path);
+                println!("File content: {}", contents);
+                println!("Error: {}", output.unwrap_err());
+                panic!("Error in parsing");
+            }
+            count += 1;
+        }
+        let elapsed = now.elapsed().as_secs_f32();
+        println!("{} files ({} bytes) parsed in {:.3}s {}MB/s", count, bytes, elapsed, bytes as f32 / elapsed / 1024.0 / 1024.0);
     }
 }

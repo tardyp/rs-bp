@@ -1,4 +1,5 @@
 use crate::{context_tag, end_delimiter, utils::*};
+use nom::combinator::map_res;
 use nom::Err;
 use nom::{
     branch::alt,
@@ -49,6 +50,7 @@ pub enum Value {
     Boolean(bool),
     Map(Map),
     Ident(String),
+    ConcatExpr(Vec<Value>),
 }
 // convert value from str
 impl From <&str> for Value {
@@ -68,13 +70,65 @@ fn parse_value(input: &str) -> VerboseResult<Value> {
         )),
     )(input)
 }
-
+fn concat_value_string(values: Vec<Value>) -> Result<Value, &'static str> {
+    let mut result = String::new();
+    for value in values {
+        match value {
+            Value::String(s) => result.push_str(&s),
+            _ => Err("value is not a string")?,
+        }
+    }
+    Ok(Value::String(result))
+}
+fn concat_value_array(values: Vec<Value>) -> Result<Value, &'static str> {
+    let mut result = Vec::new();
+    for value in values {
+        match value {
+            Value::Array(a) => result.extend(a),
+            _ => Err("value is not an array")?,
+        }
+    }
+    Ok(Value::Array(result))
+}
+pub(crate) fn parse_expr(input: &str) -> VerboseResult<Value> {
+    // in bp, value can be combined with '+' operator
+    // this parser parse the expression and combine the values
+    // into a single value, if there is no Ident in the values
+    context(
+        "expr",
+        map_res(
+            separated_list0(tuple((
+                space_or_comments,
+                char('+'),
+                space_or_comments,
+            )
+            ), parse_value),
+            |values| {
+                match values.len() {
+                    0 => Err("no value"),
+                    1 => Ok(values[0].clone()),
+                    _ => {
+                        // if there is one ident we cannot concat
+                        if values.iter().any(|v| matches!(v, Value::Ident(_))) {
+                            return Ok(Value::ConcatExpr(values));
+                        }
+                        match &values[0] {
+                            Value::String(_) => concat_value_string(values),
+                            Value::Array(_) => concat_value_array(values),
+                            _ => Err("first value is not a string"),
+                        }
+                    }
+                }
+            }
+        ),
+    )(input)
+}
 pub(crate) fn parse_array(input: &str) -> VerboseResult<Vec<Value>> {
     context(
         "array",
         delimited(
             ws(char('[')),
-            separated_list0(comma, parse_value),
+            separated_list0(comma, parse_expr),
             end_delimiter!("]"),
         ),
     )(input)
@@ -149,7 +203,7 @@ pub(crate) fn parse_module_entry(input: &str) -> VerboseResult<(String, Value)> 
                 space_or_comments,
                 char(':'),
                 space_or_comments,
-                cut(parse_value),
+                cut(parse_expr),
                 space_or_comments,
             )),
             |(_, key, _, _, _, value, _)| (key.to_string(), value),
@@ -192,7 +246,7 @@ pub(crate) fn parse_define(input: &str) -> VerboseResult<(String, Value)> {
                 space_or_comments,
                 char('='),
                 space_or_comments,
-                cut(parse_value),
+                cut(parse_expr),
                 space_or_comments,
             )),
             |(_, key, _, _, _, value, _)| (key.to_string(), value),

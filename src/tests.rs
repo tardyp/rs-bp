@@ -233,9 +233,46 @@ mod tests {
         let output = parse_module(input);
         display_error(input, &output);
         assert!(output.is_ok());
-    }    fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) -> () {
+    }
+    fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) -> () {
         if let Err(e) = output {
             println!("Error: {}", format_err(input, e.clone()));
         }
+    }
+    #[test]
+    fn test_expr() {
+        let input = r#""abc" + "def""#;
+        let output = parse_expr(input);
+        display_error(input, &output);
+        println!("{:?}", output);
+        assert!(output.is_ok());
+        assert!(output.as_ref().unwrap().0.is_empty());
+        assert!(output.unwrap().1 == Value::String("abcdef".to_string()));
+    }
+    #[test]
+    fn test_expr_array() {
+        let input = r#"["abc", "def"] + [ "ghi" ]"#;
+        let output = parse_expr(input);
+        display_error(input, &output);
+        println!("{:?}", output);
+        assert!(output.is_ok());
+        assert!(output.as_ref().unwrap().0.is_empty());
+        assert!(output.unwrap().1 == Value::Array(vec!["abc".into(), "def".into(), "ghi".into()]));
+    }
+    #[test]
+    fn test_expr_ident() {
+        let input = r#"ident + [ "ghi" ]"#;
+        let output = parse_expr(input);
+        display_error(input, &output);
+        println!("{:?}", output);
+        assert!(output.is_ok());
+        assert!(output.as_ref().unwrap().0.is_empty());
+        assert!(
+            output.unwrap().1
+                == Value::ConcatExpr([
+                    Value::Ident("ident".to_string()),
+                    Value::Array(["ghi".into()].into())
+                ].into())
+        );
     }
 }

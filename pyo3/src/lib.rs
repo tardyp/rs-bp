@@ -36,6 +36,14 @@ impl Module {
 fn map_to_py(dict: &RsMap) -> HashMap<String, Value> {
     dict.iter().map(value_to_pyvalue).collect()
 }
+#[derive(Debug, Clone)]
+#[pyclass(unsendable)]
+pub struct Function {
+    #[pyo3(get)]
+    pub name: String,
+    #[pyo3(get)]
+    pub args: Vec<Value>,
+}
 #[derive(Debug, Clone, FromPyObject)]
 pub enum Value {
     String(String),
@@ -44,7 +52,8 @@ pub enum Value {
     Map(HashMap<String, Value>),
     Ident(String),
     Integer(i64),
-    ConcatExpr(Vec<Value>)
+    ConcatExpr(Vec<Value>),
+    Function(Function)
 }
 impl IntoPy<Py<PyAny>> for Value {
     fn into_py(self, py: Python) -> Py<PyAny> {
@@ -56,6 +65,7 @@ impl IntoPy<Py<PyAny>> for Value {
             Value::Ident(i) => i.into_py(py),
             Value::Integer(i) => i.into_py(py),
             Value::ConcatExpr(c) => c.into_py(py),
+            Value::Function(f) => f.into_py(py),
         }
     }
 }
@@ -116,6 +126,10 @@ impl From<&RsValue> for Value {
             RsValue::Ident(i) => Value::Ident(i.to_owned()),
             RsValue::Integer(i) => Value::Integer(i.to_owned()),
             RsValue::ConcatExpr(c) => Value::ConcatExpr(c.iter().map(|x| Value::from(x)).collect()),
+            RsValue::Function(f) => Value::Function(Function {
+                name: f.name.to_owned(),
+                args: f.args.iter().map(|x| Value::from(x)).collect(),
+            }),
         }
     }
 }

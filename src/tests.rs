@@ -322,4 +322,17 @@ mod tests {
         assert!(output.is_ok());
 
     }
+    #[test]
+    fn test_function() {
+        let input = r#"method("ss")"#;
+        let output = parse_expr(input);
+        display_error(input, &output);
+        assert!(output.is_ok());
+        println!("{:#?}", output.as_ref().unwrap().1);
+        assert_eq!(output.unwrap().1, Value::Function(Function {
+            name: "method".to_string(),
+            args: vec![Value::String("ss".to_string())]
+        }));
+
+    }
 }

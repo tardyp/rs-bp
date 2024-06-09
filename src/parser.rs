@@ -1,3 +1,4 @@
+use crate::string::parse_string;
 use crate::{context_tag, end_delimiter, utils::*};
 use nom::combinator::map_res;
 use nom::Err;
@@ -41,7 +42,29 @@ fn parse_dict(input: &str) -> VerboseResult<Map> {
         ),
     )(input)
 }
-
+#[derive(Debug, PartialEq, Clone, Eq)]
+pub struct Function {
+    pub name: String,
+    pub args: Vec<Value>,
+}
+fn parse_function(input: &str) -> VerboseResult<Function> {
+    context(
+        "function",
+        map(
+            tuple((
+                space_or_comments,
+                identifier,
+                space_or_comments,
+                delimited(
+                    tuple((space_or_comments, context_tag!("("), space_or_comments)),
+                    separated_list0(comma, parse_expr),
+                    end_delimiter!(")"),
+                ),
+            )),
+            |(_, name, _, args)| Function { name: name.to_string(), args },
+        ),
+    )(input)
+}
 /// a value in a blueprint file
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Value {
@@ -52,6 +75,7 @@ pub enum Value {
     Map(Map),
     Ident(String),
     ConcatExpr(Vec<Value>),
+    Function(Function),
 }
 // convert value from str
 impl From <&str> for Value {
@@ -64,11 +88,12 @@ fn parse_value(input: &str) -> VerboseResult<Value> {
         "value",
         alt((
             map(parse_array, Value::Array),
+            map(parse_function, Value::Function),
             map(string_literal, Value::String),
             map(parse_bool, Value::Boolean),
             map(parse_dict, Value::Map),
-            map(identifier, |x| Value::Ident(x.to_string())),
             map(parse_int, Value::Integer),
+            map(identifier, |x| Value::Ident(x.to_string())),
         )),
     )(input)
 }
@@ -111,7 +136,7 @@ pub(crate) fn parse_expr(input: &str) -> VerboseResult<Value> {
                     1 => Ok(values[0].clone()),
                     _ => {
                         // if there is one ident we cannot concat
-                        if values.iter().any(|v| matches!(v, Value::Ident(_))) {
+                        if values.iter().any(|v| matches!(v, Value::Ident(_) | Value::Function(_))) {
                             return Ok(Value::ConcatExpr(values));
                         }
                         match &values[0] {
@@ -216,7 +241,7 @@ pub(crate) fn _parse_module_entry(input: &str, delimiter: char) -> VerboseResult
         map(
             tuple((
                 space_or_comments,
-                identifier,
+                alt((map(identifier, |x| x.to_string()), parse_string::<VerboseError<&str>>)),
                 space_or_comments,
                 char(delimiter),
                 space_or_comments,

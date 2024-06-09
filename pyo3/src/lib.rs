@@ -43,6 +43,7 @@ pub enum Value {
     Boolean(bool),
     Map(HashMap<String, Value>),
     Ident(String),
+    Integer(i64),
     ConcatExpr(Vec<Value>)
 }
 impl IntoPy<Py<PyAny>> for Value {
@@ -53,6 +54,7 @@ impl IntoPy<Py<PyAny>> for Value {
             Value::Boolean(b) => b.into_py(py),
             Value::Map(d) => d.into_py(py),
             Value::Ident(i) => i.into_py(py),
+            Value::Integer(i) => i.into_py(py),
             Value::ConcatExpr(c) => c.into_py(py),
         }
     }
@@ -112,6 +114,7 @@ impl From<&RsValue> for Value {
             RsValue::Boolean(b) => Value::Boolean(b.to_owned()),
             RsValue::Map(d) => Value::Map(map_to_py(&d)),
             RsValue::Ident(i) => Value::Ident(i.to_owned()),
+            RsValue::Integer(i) => Value::Integer(i.to_owned()),
             RsValue::ConcatExpr(c) => Value::ConcatExpr(c.iter().map(|x| Value::from(x)).collect()),
         }
     }

@@ -1,8 +1,8 @@
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
-    character::complete::{alpha1, alphanumeric1, multispace1},
-    combinator::{map, recognize, value},
+    character::complete::{alpha1, alphanumeric1, digit1, multispace1},
+    combinator::{map, map_res, opt, recognize, value},
     error::{context, VerboseError},
     multi::{many0, many0_count, many1},
     sequence::{delimited, pair, tuple},
@@ -74,3 +74,34 @@ pub(crate) fn comma(input: &str) -> VerboseResult<&str> {
 pub(crate) fn parse_bool(input: &str) -> VerboseResult<bool> {
     alt((map(tag("true"), |_| true), map(tag("false"), |_| false)))(input)
 }
+
+pub(crate) fn parse_int(input: &str) -> VerboseResult<i64> {
+    map_res(
+        recognize(pair(opt(tag("-")), digit1)),
+        |x| i64::from_str_radix(x, 10),
+    )(input)
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_bool() {
+        let input = "true";
+        let expected_output = Ok(("", true));
+        assert_eq!(parse_bool(input), expected_output);
+    }
+    #[test]
+    fn test_parse_int() {
+        let input = "123";
+        let expected_output = Ok(("", 123));
+        assert_eq!(parse_int(input), expected_output);
+    }
+    #[test]
+    fn test_parse_nint() {
+        let input: &str = "-123";
+        let expected_output = Ok(("", -123));
+        assert_eq!(parse_int(input), expected_output);
+    }
+}
+

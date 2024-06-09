@@ -275,4 +275,16 @@ mod tests {
                 ].into())
         );
     }
+    #[test]
+    fn test_expr_value() {
+        let input = r#"123"#;
+        let output = parse_expr(input);
+        display_error(input, &output);
+        println!("{:?}", output);
+        assert!(output.is_ok());
+        assert!(output.as_ref().unwrap().0.is_empty());
+        assert!(
+            output.unwrap().1
+                == Value::Integer(123));
+    }
 }

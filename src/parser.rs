@@ -46,6 +46,7 @@ fn parse_dict(input: &str) -> VerboseResult<Map> {
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Value {
     String(String),
+    Integer(i64),
     Array(Vec<Value>),
     Boolean(bool),
     Map(Map),
@@ -67,6 +68,7 @@ fn parse_value(input: &str) -> VerboseResult<Value> {
             map(parse_bool, Value::Boolean),
             map(parse_dict, Value::Map),
             map(identifier, |x| Value::Ident(x.to_string())),
+            map(parse_int, Value::Integer),
         )),
     )(input)
 }

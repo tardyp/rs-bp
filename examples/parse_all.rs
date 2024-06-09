@@ -25,10 +25,10 @@ fn walk_dir(dir: &Path) -> usize {
                         println!("{}", path.to_string_lossy());
                         for module in blueprint.modules {
                             println!("{} {:?}", module.typ, module.get("name"));
-
                         }
                     }
                     Err(e) => {
+                        println!("{}", path.to_string_lossy());
                         println!("{}: {}", path.to_string_lossy(), e);
                         panic!("please report! this file is not parsed correctly");
                     }

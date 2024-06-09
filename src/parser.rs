@@ -193,9 +193,24 @@ impl Module {
             _ => None,
         }
     }
+    /// get an integer attribute value from a module
+    pub fn get_int(&self, key: &str) -> Option<i64> {
+        match self.get(key) {
+            Some(Value::Integer(i)) => Some(*i),
+            _ => None,
+        }
+    }
 
 }
+/// parse a module entry, with `:` as delimiter
 pub(crate) fn parse_module_entry(input: &str) -> VerboseResult<(String, Value)> {
+    _parse_module_entry(input, ':')
+}
+/// second form of module entry, with `=` as delimiter
+pub(crate) fn parse_module_entry2(input: &str) -> VerboseResult<(String, Value)> {
+    _parse_module_entry(input, '=')
+}
+pub(crate) fn _parse_module_entry(input: &str, delimiter: char) -> VerboseResult<(String, Value)> {
     context(
         "module entry",
         map(
@@ -203,7 +218,7 @@ pub(crate) fn parse_module_entry(input: &str) -> VerboseResult<(String, Value)> 
                 space_or_comments,
                 identifier,
                 space_or_comments,
-                char(':'),
+                char(delimiter),
                 space_or_comments,
                 cut(parse_expr),
                 space_or_comments,
@@ -220,6 +235,7 @@ pub(crate) fn parse_module(input: &str) -> VerboseResult<Module> {
     let (input, _) = space_or_comments(input)?;
     let (input, module) = context(
         "module",
+        alt((
         map(
             delimited(
                 tuple((space_or_comments, context_tag!("{"), space_or_comments)),
@@ -228,6 +244,15 @@ pub(crate) fn parse_module(input: &str) -> VerboseResult<Module> {
             ),
             |entries| entries.into_iter().collect(),
         ),
+        map(
+            delimited(
+                tuple((space_or_comments, context_tag!("("), space_or_comments)),
+                separated_list0(char(','), parse_module_entry2),
+                end_delimiter!(")"),
+            ),
+            |entries| entries.into_iter().collect(),
+        ),
+        )),
     )(input)?;
     Ok((
         input,

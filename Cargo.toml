@@ -16,3 +16,10 @@ name = "android_bp"
 
 [dependencies]
 nom = "7.1.3"
+
+# put pyo3 in a workspace, so that rust-analyzer can find any incompatibility
+[workspace]
+resolver = "2"
+members = [
+    "pyo3"
+]

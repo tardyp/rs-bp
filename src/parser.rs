@@ -12,7 +12,7 @@ use nom::{
     sequence::{delimited, tuple},
 };
 use std::collections::HashMap;
-use std::ops::{DerefMut, Deref};
+use std::ops::{Deref, DerefMut};
 use std::path::Path;
 
 /// a dictionary in a blueprint file
@@ -38,7 +38,7 @@ fn parse_dict(input: &str) -> VerboseResult<Map> {
                 separated_list0(char(','), parse_module_entry),
                 end_delimiter!("}"),
             ),
-            |entries| Map(entries.into_iter().collect())
+            |entries| Map(entries.into_iter().collect()),
         ),
     )(input)
 }
@@ -61,7 +61,10 @@ fn parse_function(input: &str) -> VerboseResult<Function> {
                     end_delimiter!(")"),
                 ),
             )),
-            |(_, name, _, args)| Function { name: name.to_string(), args },
+            |(_, name, _, args)| Function {
+                name: name.to_string(),
+                args,
+            },
         ),
     )(input)
 }
@@ -78,7 +81,7 @@ pub enum Value {
     Function(Function),
 }
 // convert value from str
-impl From <&str> for Value {
+impl From<&str> for Value {
     fn from(s: &str) -> Self {
         Value::String(s.to_string())
     }
@@ -124,19 +127,20 @@ pub(crate) fn parse_expr(input: &str) -> VerboseResult<Value> {
     context(
         "expr",
         map_res(
-            separated_list0(tuple((
-                space_or_comments,
-                char('+'),
-                space_or_comments,
-            )
-            ), parse_value),
+            separated_list0(
+                tuple((space_or_comments, char('+'), space_or_comments)),
+                parse_value,
+            ),
             |values| {
                 match values.len() {
                     0 => Err("no value"),
                     1 => Ok(values[0].clone()),
                     _ => {
                         // if there is one ident we cannot concat
-                        if values.iter().any(|v| matches!(v, Value::Ident(_) | Value::Function(_))) {
+                        if values
+                            .iter()
+                            .any(|v| matches!(v, Value::Ident(_) | Value::Function(_)))
+                        {
                             return Ok(Value::ConcatExpr(values));
                         }
                         match &values[0] {
@@ -146,7 +150,7 @@ pub(crate) fn parse_expr(input: &str) -> VerboseResult<Value> {
                         }
                     }
                 }
-            }
+            },
         ),
     )(input)
 }
@@ -164,13 +168,12 @@ pub(crate) fn parse_array(input: &str) -> VerboseResult<Vec<Value>> {
 /// a blueprint file
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct BluePrint {
-    /// variables in the blueprint file 
+    /// variables in the blueprint file
     /// found in root of the file in the form of `key = value`
     pub variables: HashMap<String, Value>,
     /// all ordered modules in the blueprint file
     pub modules: Vec<Module>,
 }
-
 
 /// a module in a blueprint file
 #[derive(Debug, PartialEq, Clone, Eq)]
@@ -225,7 +228,6 @@ impl Module {
             _ => None,
         }
     }
-
 }
 /// parse a module entry, with `:` as delimiter
 pub(crate) fn parse_module_entry(input: &str) -> VerboseResult<(String, Value)> {
@@ -241,7 +243,10 @@ pub(crate) fn _parse_module_entry(input: &str, delimiter: char) -> VerboseResult
         map(
             tuple((
                 space_or_comments,
-                alt((map(identifier, |x| x.to_string()), parse_string::<VerboseError<&str>>)),
+                alt((
+                    map(identifier, |x| x.to_string()),
+                    parse_string::<VerboseError<&str>>,
+                )),
                 space_or_comments,
                 char(delimiter),
                 space_or_comments,
@@ -261,22 +266,22 @@ pub(crate) fn parse_module(input: &str) -> VerboseResult<Module> {
     let (input, module) = context(
         "module",
         alt((
-        map(
-            delimited(
-                tuple((space_or_comments, context_tag!("{"), space_or_comments)),
-                separated_list0(char(','), parse_module_entry),
-                end_delimiter!("}"),
+            map(
+                delimited(
+                    tuple((space_or_comments, context_tag!("{"), space_or_comments)),
+                    separated_list0(char(','), parse_module_entry),
+                    end_delimiter!("}"),
+                ),
+                |entries| entries.into_iter().collect(),
             ),
-            |entries| entries.into_iter().collect(),
-        ),
-        map(
-            delimited(
-                tuple((space_or_comments, context_tag!("("), space_or_comments)),
-                separated_list0(char(','), parse_module_entry2),
-                end_delimiter!(")"),
+            map(
+                delimited(
+                    tuple((space_or_comments, context_tag!("("), space_or_comments)),
+                    separated_list0(char(','), parse_module_entry2),
+                    end_delimiter!(")"),
+                ),
+                |entries| entries.into_iter().collect(),
             ),
-            |entries| entries.into_iter().collect(),
-        ),
         )),
     )(input)?;
     Ok((
@@ -288,7 +293,7 @@ pub(crate) fn parse_module(input: &str) -> VerboseResult<Module> {
     ))
 }
 
-pub(crate) fn parse_define(input: &str) -> VerboseResult<(String, Value)> {
+pub(crate) fn parse_define(input: &str) -> VerboseResult<(String, String, Value)> {
     context(
         "define",
         map(
@@ -296,15 +301,16 @@ pub(crate) fn parse_define(input: &str) -> VerboseResult<(String, Value)> {
                 space_or_comments,
                 identifier,
                 space_or_comments,
-                char('='),
+                alt((tag("="), tag("+="))),
                 space_or_comments,
                 cut(parse_expr),
                 space_or_comments,
             )),
-            |(_, key, _, _, _, value, _)| (key.to_string(), value),
+            |(_, key, _, op, _, value, _)| (key.to_string(), op.to_string(), value),
         ),
     )(input)
 }
+
 pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
     let mut entries = Vec::new();
     let mut variables = HashMap::new();
@@ -315,9 +321,52 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
                 entries.push(b);
                 ()
             }),
-            map(parse_define, |(k, v)| {
-                variables.insert(k, v);
-                ()
+            map_res(parse_define, |(k, op, v)| match op.as_str() {
+                "=" => {
+                    variables.insert(k, v);
+                    Ok(())
+                }
+                "+=" => {
+                    let e = variables.entry(k);
+                    match e {
+                        std::collections::hash_map::Entry::Occupied(prev) => {
+                            let prev = prev.into_mut();
+                            match prev {
+                                Value::String(s) => {
+                                    match v {
+                                        Value::String(s2) => {
+                                            s.push_str(&s2);
+                                        }
+                                        _ => Err("cannot append value to string")?,
+                                    }
+                                }
+                                Value::Array(a) => {
+                                    match v {
+                                        Value::Array(a2) => {
+                                            a.extend(a2);
+                                        }
+                                        Value::Ident(_) => {
+                                            Err("FIXME in this case, we should turn the Array into ConcatExpr")?
+                                        }
+                                        _ => Err("cannot append value to array")?,
+                                    }
+                                }
+                                Value::Integer(i) => {
+                                    match v {
+                                        Value::Integer(i2) => {
+                                            *i += i2;
+                                        }
+                                        _ => Err("cannot append value to integer")?,
+                                    }
+                                }
+                                _ => Err("cannot append value to this type")?,
+                            }
+                        }
+                        std::collections::hash_map::Entry::Vacant(_) => Err("variable not found")?,
+                    }
+                    Ok(())
+                }
+                _ => Err("unknown operator"),
             }),
             space_or_comments1,
         ))),
@@ -331,7 +380,7 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
     ))
 }
 
-pub(crate)fn format_err(input: &str, err: Err<VerboseError<&str>>) -> String {
+pub(crate) fn format_err(input: &str, err: Err<VerboseError<&str>>) -> String {
     match err {
         Err::Error(e) | Err::Failure(e) => convert_error(input, e.into()),
         Err::Incomplete(_) => "Incomplete".to_string(),
@@ -357,8 +406,6 @@ impl BluePrint {
     }
     /// get all modules of a specific type
     pub fn modules_by_type<'a>(&'a self, typ: &'static str) -> impl Iterator<Item = &'a Module> {
-        self.modules
-            .iter()
-            .filter(move |b| b.typ == typ)
+        self.modules.iter().filter(move |b| b.typ == typ)
     }
 }

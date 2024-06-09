@@ -13,6 +13,13 @@ fn walk_dir(dir: &Path) -> usize {
     for entry in dir.read_dir().unwrap() {
         let path = entry.unwrap().path();
         if path.is_dir() {
+            if path.file_name().unwrap().to_str().unwrap() == "out" {
+                continue;
+            }
+            if path.file_name().unwrap().to_str().unwrap().starts_with("."){
+                continue;
+            }
+            
             num_files += walk_dir(&path);
         } else {
             let file_name = path.file_name().unwrap().to_str().unwrap();

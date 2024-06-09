@@ -5,7 +5,7 @@ mod tests {
 
     use crate::parser::*;
     use nom::error::VerboseError;
-    use nom::{bytes, Err};
+    use nom::Err;
 
     #[test]
     fn test_parse_array() {
@@ -315,6 +315,36 @@ mod tests {
 
     }
     #[test]
+    fn test_defines_extends(){
+        let input = r#"
+        var = ["a", "b"]
+        var2 = 12
+        var += ["c"]
+        var2 += 1
+        var3 = "abc"
+        var3 += "def"
+        "#;
+        let output = BluePrint::parse(input);
+        assert!(output.is_ok());
+        let bp = output.unwrap();
+        assert_eq!(bp.variables.get("var").unwrap(), &Value::Array(vec!["a".into(), "b".into(), "c".into()]));
+        assert_eq!(bp.variables.get("var2").unwrap(), &Value::Integer(13));
+        assert_eq!(bp.variables.get("var3").unwrap(), &Value::String("abcdef".to_string()));
+    }
+
+    #[test]
+    fn test_defines_extends_error(){
+        let input = r#"
+        var = ["a", "b"]
+        var2 = 12
+        var += 1
+        var2 += "a"
+        "#;
+        let output = BluePrint::parse(input);
+        println!("Error: {}", output.unwrap_err());
+        // assert!(output.is_err());
+    }
+    #[test]
     fn test_function() {
         let input = r#"method("ss")"#;
         let output = parse_expr(input);
@@ -329,11 +359,12 @@ mod tests {
     #[test]
     fn test_aosp_db() {
         // generate tarball from aosp tree
-        // fd -g Android.bp |xargs tar cJf ../rs-bp/src/test_db.tar.xz
+        // fd -g Android.bp | tar cJf ../rs-bp/src/test_db.tar.xz -T -
         let data = include_bytes!("test_db.tar.xz");
         let mut archive = tar::Archive::new(liblzma::read::XzDecoder::new(&data[..]));
         let mut count = 0;
         let mut bytes = 0;
+        let mut num_errors = 0;
         let mut all_bp = Vec::new();
         // first decompress in memory to avoid disk IO for measuring performance
         for entry in archive.entries().unwrap() {
@@ -351,11 +382,12 @@ mod tests {
                 println!("Error for file: {:?}", path);
                 println!("File content: {}", contents);
                 println!("Error: {}", output.unwrap_err());
-                panic!("Error in parsing");
+                num_errors += 1;
             }
             count += 1;
         }
         let elapsed = now.elapsed().as_secs_f32();
         println!("{} files ({} bytes) parsed in {:.3}s {}MB/s", count, bytes, elapsed, bytes as f32 / elapsed / 1024.0 / 1024.0);
+        assert_eq!(num_errors, 0);
     }
 }

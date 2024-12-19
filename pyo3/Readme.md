@@ -13,10 +13,10 @@ This module is only intended to parse Android.bp files, not to generate or rewri
 ## Usage
 
 ```python
-    from android_bp import Blueprint
+    from android_bp import BluePrint
 
     # bp is a rust object, but behave mostly like a read only python object
-    bp = Blueprint.from_file("Android.bp")
+    bp = BluePrint.from_file("Android.bp")
 
     # for debug, you can print any of internal objects
     # they will be printed as rust would in debug fmt

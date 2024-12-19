@@ -7,7 +7,7 @@ a rust crate to parse Android.bp files
 ```rust
     use android_bp::BluePrint;
 
-    let bp = BluePrint::from_file("fixtures/Android.bp").unwrap();
+    let bp = BluePrint::from_file("fixtures/example.bp").unwrap();
     println!("{:#?}", bp);
 
     // variables are accessible as a rust HashMap

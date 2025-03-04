@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod test {
 
     use std::io::Read;
 
@@ -241,7 +241,7 @@ mod tests {
         display_error(input, &output);
         assert!(output.is_ok());
     }
-    fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) -> () {
+    fn display_error<T>(input: &str, output: &Result<(&str, T), Err<VerboseError<&str>>>) {
         if let Err(e) = output {
             println!("Error: {}", format_err(input, e.clone()));
         }

@@ -29,7 +29,7 @@ impl DerefMut for Map {
         &mut self.0
     }
 }
-fn parse_dict(input: &str) -> VerboseResult<Map> {
+fn parse_dict(input: &str) -> VerboseResult<'_, Map> {
     context(
         "dict",
         map(
@@ -47,7 +47,7 @@ pub struct Function {
     pub name: String,
     pub args: Vec<Value>,
 }
-fn parse_function(input: &str) -> VerboseResult<Function> {
+fn parse_function(input: &str) -> VerboseResult<'_, Function> {
     context(
         "function",
         map(
@@ -86,7 +86,7 @@ impl From<&str> for Value {
         Value::String(s.to_string())
     }
 }
-fn parse_value(input: &str) -> VerboseResult<Value> {
+fn parse_value(input: &'_ str) -> VerboseResult<'_, Value> {
     context(
         "value",
         alt((
@@ -120,7 +120,7 @@ fn concat_value_array(values: Vec<Value>) -> Result<Value, &'static str> {
     }
     Ok(Value::Array(result))
 }
-pub(crate) fn parse_expr(input: &str) -> VerboseResult<Value> {
+pub(crate) fn parse_expr(input: &str) -> VerboseResult<'_, Value> {
     // in bp, value can be combined with '+' operator
     // this parser parse the expression and combine the values
     // into a single value, if there is no Ident in the values
@@ -154,7 +154,7 @@ pub(crate) fn parse_expr(input: &str) -> VerboseResult<Value> {
         ),
     )(input)
 }
-pub(crate) fn parse_array(input: &str) -> VerboseResult<Vec<Value>> {
+pub(crate) fn parse_array(input: &str) -> VerboseResult<'_, Vec<Value>> {
     context(
         "array",
         delimited(
@@ -230,14 +230,14 @@ impl Module {
     }
 }
 /// parse a module entry, with `:` as delimiter
-pub(crate) fn parse_module_entry(input: &str) -> VerboseResult<(String, Value)> {
+pub(crate) fn parse_module_entry(input: &str) -> VerboseResult<'_, (String, Value)> {
     _parse_module_entry(input, ':')
 }
 /// second form of module entry, with `=` as delimiter
-pub(crate) fn parse_module_entry2(input: &str) -> VerboseResult<(String, Value)> {
+pub(crate) fn parse_module_entry2(input: &str) -> VerboseResult<'_, (String, Value)> {
     _parse_module_entry(input, '=')
 }
-pub(crate) fn _parse_module_entry(input: &str, delimiter: char) -> VerboseResult<(String, Value)> {
+pub(crate) fn _parse_module_entry(input: &str, delimiter: char) -> VerboseResult<'_, (String, Value)> {
     context(
         "module entry",
         map(
@@ -258,7 +258,7 @@ pub(crate) fn _parse_module_entry(input: &str, delimiter: char) -> VerboseResult
     )(input)
 }
 
-pub(crate) fn parse_module(input: &str) -> VerboseResult<Module> {
+pub(crate) fn parse_module(input: &str) -> VerboseResult<'_, Module> {
     // parse a identifier followed by a module of entries
     let (input, _) = space_or_comments(input)?;
     let (input, ident) = identifier(input)?;
@@ -293,7 +293,7 @@ pub(crate) fn parse_module(input: &str) -> VerboseResult<Module> {
     ))
 }
 
-pub(crate) fn parse_define(input: &str) -> VerboseResult<(String, String, Value)> {
+pub(crate) fn parse_define(input: &str) -> VerboseResult<'_, (String, String, Value)> {
     context(
         "define",
         map(
@@ -311,7 +311,7 @@ pub(crate) fn parse_define(input: &str) -> VerboseResult<(String, String, Value)
     )(input)
 }
 
-pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
+pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<'_, BluePrint> {
     let mut entries = Vec::new();
     let mut variables = HashMap::new();
     let (input, _) = context(
@@ -319,7 +319,7 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
         many0(alt((
             map(parse_module, |b| {
                 entries.push(b);
-                ()
+                
             }),
             map_res(parse_define, |(k, op, v)| match op.as_str() {
                 "=" => {
@@ -374,7 +374,7 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
     Ok((
         input,
         BluePrint {
-            variables: variables,
+            variables,
             modules: entries,
         },
     ))
@@ -382,7 +382,7 @@ pub(crate) fn parse_blueprint(input: &str) -> VerboseResult<BluePrint> {
 
 pub(crate) fn format_err(input: &str, err: Err<VerboseError<&str>>) -> String {
     match err {
-        Err::Error(e) | Err::Failure(e) => convert_error(input, e.into()),
+        Err::Error(e) | Err::Failure(e) => convert_error(input, e),
         Err::Incomplete(_) => "Incomplete".to_string(),
     }
 }
@@ -391,7 +391,7 @@ impl BluePrint {
     pub fn parse(input: &str) -> Result<Self, String> {
         match parse_blueprint(input) {
             Ok((rest, result)) => {
-                if rest.len() > 0 {
+                if !rest.is_empty() {
                     return Err(format!("Unexpected left input: {}", rest));
                 }
                 Ok(result)

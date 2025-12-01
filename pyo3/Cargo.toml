@@ -3,7 +3,7 @@ name = "android_bp_pyo3"
 version = "0.3.0"
 edition = "2021"
 description = "Android.bp parser"
-readme = "Readme.md"
+readme = "README.md"
 repository = "https://github.com/tardyp/rs-bp"
 homepage = "https://github.com/tardyp/rs-bp"
 license = "MIT"
@@ -20,4 +20,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 android_bp = { path = ".." }
-pyo3 = { version = "0.20.0", features = ["extension-module"] }
+pyo3 = { version = "0.27.0", features = ["extension-module"] }

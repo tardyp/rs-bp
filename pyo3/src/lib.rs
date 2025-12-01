@@ -44,7 +44,16 @@ pub struct Function {
     #[pyo3(get)]
     pub args: Vec<Value>,
 }
-#[derive(Debug, Clone, FromPyObject)]
+impl<'py> IntoPyObject<'py> for &Function {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        self.clone().into_pyobject(py).map(|x| x.into_any())
+    }
+}
+#[derive(Debug, Clone, FromPyObject, IntoPyObject, IntoPyObjectRef)]
 pub enum Value {
     String(String),
     Array(Vec<Value>),
@@ -54,20 +63,6 @@ pub enum Value {
     Integer(i64),
     ConcatExpr(Vec<Value>),
     Function(Function)
-}
-impl IntoPy<Py<PyAny>> for Value {
-    fn into_py(self, py: Python) -> Py<PyAny> {
-        match self {
-            Value::String(s) => s.into_py(py),
-            Value::Array(a) => a.into_py(py),
-            Value::Boolean(b) => b.into_py(py),
-            Value::Map(d) => d.into_py(py),
-            Value::Ident(i) => i.into_py(py),
-            Value::Integer(i) => i.into_py(py),
-            Value::ConcatExpr(c) => c.into_py(py),
-            Value::Function(f) => f.into_py(py),
-        }
-    }
 }
 #[derive(Debug, Clone)]
 #[pyclass(unsendable)]
@@ -80,7 +75,7 @@ pub struct BluePrint {
 impl From<&RsBluePrint> for BluePrint {
     fn from(bp: &RsBluePrint) -> Self {
         let variables = bp.variables.iter().map(value_to_pyvalue).collect();
-        let modules = bp.modules.iter().map(|b| Module::from(b)).collect();
+        let modules = bp.modules.iter().map(Module::from).collect();
         BluePrint { variables, modules }
     }
 }
@@ -98,7 +93,7 @@ impl BluePrint {
     #[staticmethod]
     #[pyo3(name = "from_file", signature = (path))]
     pub fn from_file(path: &str) -> PyResult<Self> {
-        let contents = std::fs::read_to_string(&path).map_err(|e| e.to_string());
+        let contents = std::fs::read_to_string(path).map_err(|e| e.to_string());
         let contents = match contents {
             Ok(c) => c,
             Err(e) => return Err(PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(e)),
@@ -120,15 +115,15 @@ impl From<&RsValue> for Value {
     fn from(v: &RsValue) -> Self {
         match v {
             RsValue::String(s) => Value::String(s.to_owned()),
-            RsValue::Array(a) => Value::Array(a.iter().map(|x| Value::from(x)).collect()),
+            RsValue::Array(a) => Value::Array(a.iter().map(Value::from).collect()),
             RsValue::Boolean(b) => Value::Boolean(b.to_owned()),
-            RsValue::Map(d) => Value::Map(map_to_py(&d)),
+            RsValue::Map(d) => Value::Map(map_to_py(d)),
             RsValue::Ident(i) => Value::Ident(i.to_owned()),
             RsValue::Integer(i) => Value::Integer(i.to_owned()),
-            RsValue::ConcatExpr(c) => Value::ConcatExpr(c.iter().map(|x| Value::from(x)).collect()),
+            RsValue::ConcatExpr(c) => Value::ConcatExpr(c.iter().map(Value::from).collect()),
             RsValue::Function(f) => Value::Function(Function {
                 name: f.name.to_owned(),
-                args: f.args.iter().map(|x| Value::from(x)).collect(),
+                args: f.args.iter().map(Value::from).collect(),
             }),
         }
     }
@@ -138,7 +133,7 @@ fn value_to_pyvalue(t: (&String, &RsValue)) -> (String, Value) {
     (k.to_owned(), v.into())
 }
 #[pymodule]
-fn android_bp(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<BluePrint>()?;
-    Ok(())
+mod android_bp {
+    #[pymodule_export]
+    use super::BluePrint;
 }

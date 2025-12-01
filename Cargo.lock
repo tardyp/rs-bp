@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "android_bp"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "liblzma",
  "nom",
@@ -13,7 +13,7 @@ dependencies = [
 
 [[package]]
 name = "android_bp_pyo3"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "android_bp",
  "pyo3",
